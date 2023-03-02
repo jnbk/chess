@@ -1,6 +1,6 @@
 import ChessBoard from "./ChessBoard.js";
-import { KING, LETTERS, QUEEN, START_POSITIONS } from "./consts.js";
-import { coordinatesToXY as cToXY, distanceBetweenPoints, pointsAreDiagonal, pointsAreStraightLine } from "./functions.js";
+import { BISHOP, KING, KNIGHT, LETTERS, PAWN, QUEEN, ROOK, START_POSITIONS } from "./consts.js";
+import { coordinatesToXY as cToXY, distanceBetweenPoints, pointsAreDiagonal, pointsAreKnightMovable, pointsArePawnMovable, pointsAreStraightLine } from "./functions.js";
 
 export default class Chess extends EventTarget {
 
@@ -33,21 +33,23 @@ export default class Chess extends EventTarget {
     setStartPosition(pos) {
         for(let coordinates in pos) {
             const data = pos[coordinates];
-            this.setFieldPiece(...cToXY(coordinates), data.piece, data.pieceColor);
+            this.setFieldPiece(...cToXY(coordinates), data.piece, data.pieceColor, false);
         }
     }
     getField(x, y) {
         return this.board[x][y];
     }
-    setFieldPiece(x, y, piece = null, pieceColor = null) {
+    setFieldPiece(x, y, piece = null, pieceColor = null, moved = true) {
         const field = this.getField(x, y);
         field.piece = piece;
         field.pieceColor = pieceColor;
+        field.moved = moved;
         this.dispatchEvent(this.customEvent("fieldset", {
             x, 
             y, 
             piece, 
-            pieceColor
+            pieceColor,
+            moved,
         }));
         return this;
     }
@@ -57,6 +59,9 @@ export default class Chess extends EventTarget {
             fromField = this.getField(...fromXY);
 
         if(!this.canMove(fromXY, toXY)) return false;
+
+
+        fromField.moved = true;
 
         this.setFieldPiece(...toXY, fromField.piece, fromField.pieceColor);
         this.setFieldPiece(...fromXY, null, null);
@@ -80,6 +85,14 @@ export default class Chess extends EventTarget {
             if(distance.max > 1) return false;
         } else if(fromP === QUEEN) {
             if(!pointsAreDiagonal(fromXY, toXY) && !pointsAreStraightLine(fromXY, toXY)) return false;
+        } else if(fromP === ROOK) {
+            if(!pointsAreStraightLine(fromXY, toXY)) return false;
+        } else if(fromP === BISHOP) {
+            if(!pointsAreDiagonal(fromXY, toXY)) return false;
+        } else if(fromP === KNIGHT) {
+            if(!pointsAreKnightMovable(fromXY, toXY)) return false;
+        } else if(fromP === PAWN) {
+            if(!pointsArePawnMovable(fromXY, toXY, fromColor, from.moved, !!toP)) return false;
         }
 
         return true;

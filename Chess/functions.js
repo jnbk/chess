@@ -48,3 +48,40 @@ export function pointsAreStraightLine(p1, p2) {
     return true;
 }
 
+
+export function pointsAreKnightMovable(p1, p2) {
+    const {y, x} = distanceBetweenPoints(p1, p2)
+    
+    if(Math.abs(y) === 1 && Math.abs(x) === 2) return true;
+    if(Math.abs(x) === 1 && Math.abs(y) === 2) return true;
+
+    return false;
+}
+
+
+export function pointsArePawnMovable(p1, p2, color, moved, gonnaCapture = false) {
+    const {y, x} = distanceBetweenPoints(p1, p2)
+
+
+    if(color === "white" && p1[0] > p2[0]) return false;
+    if(color === "black" && p1[0] < p2[0]) return false;
+
+    if(moved && x > 1) {
+        return false;
+    } else if(!moved && x > 2) {
+        return false;
+    }
+
+
+    if(gonnaCapture) {
+        if(y !== 1 || x !== 1) {
+            return false;
+        }
+    } else {
+        if(y !== 0) return false;
+    }
+    
+
+    return true;
+}
+
