@@ -1,6 +1,6 @@
 import ChessBoard from "./ChessBoard.js";
 import { BISHOP, KING, KNIGHT, LETTERS, PAWN, QUEEN, ROOK, START_POSITIONS } from "./consts.js";
-import { coordinatesToXY as cToXY, distanceBetweenPoints, pointsAreDiagonal, pointsAreKnightMovable, pointsArePawnMovable, pointsAreStraightLine } from "./functions.js";
+import { coordinatesToXY as cToXY } from "./functions.js";
 
 export default class Chess extends EventTarget {
 
@@ -26,6 +26,16 @@ export default class Chess extends EventTarget {
         };
         this.board = Chess.generateBoard();
         this.setStartPosition(START_POSITIONS);
+    }
+    nextTurn() {
+        if(this.game.onTurn === "white") {
+            this.game.onTurn = "black";
+        } else {
+            this.game.onTurn = "white";
+        }
+        this.dispatchEvent(this.customEvent("turn", {
+            onTurn: this.game.onTurn
+        }));
     }
 
     // helpers
@@ -62,6 +72,7 @@ export default class Chess extends EventTarget {
 
 
         fromField.moved = true;
+        this.nextTurn();
 
         this.setFieldPiece(...toXY, fromField.piece, fromField.pieceColor);
         this.setFieldPiece(...fromXY, null, null);
@@ -77,22 +88,38 @@ export default class Chess extends EventTarget {
             toColor = to.pieceColor,
             fromP = from.piece,
             toP = to.piece,
-            distance = distanceBetweenPoints(fromXY, toXY);
+            distance = this.distanceBetweenPoints(fromXY, toXY);
 
         if(fromColor === toColor) return false;
+        if(fromColor !== this.game.onTurn) return false;
 
         if(fromP === KING) {
             if(distance.max > 1) return false;
         } else if(fromP === QUEEN) {
-            if(!pointsAreDiagonal(fromXY, toXY) && !pointsAreStraightLine(fromXY, toXY)) return false;
+            const pointsAreDiagonal = this.pointsAreDiagonal(fromXY, toXY),
+                pointsAreStraightLine = this.pointsAreStraightLine(fromXY, toXY);
+            if(!pointsAreDiagonal && !pointsAreStraightLine) return false;
+
+            let fields;
+                if(pointsAreStraightLine) {
+                    fields = this.getStraightLineFieldsBetweenPoints(fromXY, toXY);
+                } else {
+                    fields = this.getDiagonalFieldsBetweenPoints(fromXY, toXY);
+                }
+            
+            if(!this.fieldsAreFree(fields)) return false;
+
         } else if(fromP === ROOK) {
-            if(!pointsAreStraightLine(fromXY, toXY)) return false;
+            if(!this.pointsAreStraightLine(fromXY, toXY)) return false;
+            if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
         } else if(fromP === BISHOP) {
-            if(!pointsAreDiagonal(fromXY, toXY)) return false;
+            if(!this.pointsAreDiagonal(fromXY, toXY)) return false;
+            if(!this.fieldsAreFree(this.getDiagonalFieldsBetweenPoints(fromXY, toXY))) return false;
         } else if(fromP === KNIGHT) {
-            if(!pointsAreKnightMovable(fromXY, toXY)) return false;
+            if(!this.pointsAreKnightMovable(fromXY, toXY)) return false;
         } else if(fromP === PAWN) {
-            if(!pointsArePawnMovable(fromXY, toXY, fromColor, from.moved, !!toP)) return false;
+            if(!this.pointsArePawnMovable(fromXY, toXY, fromColor, from.moved, !!toP)) return false;
+            if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
         }
 
         return true;
@@ -111,7 +138,141 @@ export default class Chess extends EventTarget {
         });
     }
 
+    // helpers
+
+    distanceBetweenPoints(p1, p2) {
+        const [x1, y1] = p1,
+            [x2, y2] = p2;
     
+        let x = x1 - x2,
+            y = y1 - y2,
+            xDist = Math.abs(x),
+            yDist = Math.abs(y);
+
+        let maxReal;
+        if(Math.abs(x) > Math.abs(y)) {
+            maxReal = x;
+        } else {
+            maxReal = y;
+        }
+        
+    
+        return {
+            x: xDist,
+            y: yDist,
+            xReal: x1 - x2,
+            yReal: y1 - y2,
+            max: Math.max(xDist, yDist),
+            maxReal
+        }
+    }
+    
+    pointsAreDiagonal(p1, p2) {
+        const {y, x} = this.distanceBetweenPoints(p1, p2)
+        if(y !== x) return false;
+    
+        return true;
+    }
+    
+    
+    pointsAreStraightLine(p1, p2) {
+        const {y, x} = this.distanceBetweenPoints(p1, p2)
+        if(y !== 0 && x !== 0) return false;
+    
+        return true;
+    }
+    
+    
+    pointsAreKnightMovable(p1, p2) {
+        const {y, x} = this.distanceBetweenPoints(p1, p2)
+        
+        if(Math.abs(y) === 1 && Math.abs(x) === 2) return true;
+        if(Math.abs(x) === 1 && Math.abs(y) === 2) return true;
+    
+        return false;
+    }
+    
+    
+    pointsArePawnMovable(p1, p2, color, moved, gonnaCapture = false) {
+        const {y, x} = this.distanceBetweenPoints(p1, p2)
+    
+    
+        if(color === "white" && p1[0] > p2[0]) return false;
+        if(color === "black" && p1[0] < p2[0]) return false;
+    
+        if(moved && x > 1) {
+            return false;
+        } else if(!moved && x > 2) {
+            return false;
+        }
+    
+    
+        if(gonnaCapture) {
+            if(y !== 1 || x !== 1) {
+                return false;
+            }
+        } else {
+            if(y !== 0) return false;
+        }
+        
+    
+        return true;
+    }
+
+    getStraightLineFieldsBetweenPoints(p1, p2, inclusive = false) {
+        if(!this.pointsAreStraightLine(p1, p2)) return [];
+
+        const fields = [];
+
+        const {y, x} = this.distanceBetweenPoints(p1, p2);
+        if(x > 0) {
+            for(let i = Math.min(p1[0], p2[0]); i < Math.max(p1[0], p2[0]); i++) {
+                if(!inclusive && [p1[0], p2[0]].includes(i)) continue; 
+
+                fields.push(this.getField(i, p1[1]))
+            }
+        } else if(y > 0) {
+            for(let i = Math.min(p1[1], p2[1]); i < Math.max(p1[1], p2[1]); i++) {
+                if(!inclusive && [p1[1], p2[1]].includes(i)) continue; 
+
+                fields.push(this.getField(p1[0], i))
+            }
+        }
+
+        return fields;
+    }
+
+    getDiagonalFieldsBetweenPoints(p1, p2, inclusive = false) {
+        if(!this.pointsAreDiagonal(p1, p2)) return [];
+
+        const fields = [];
+
+        const {maxReal, xReal, yReal} = this.distanceBetweenPoints(p1, p2);
+
+        for(let i = 0; i <= Math.abs(maxReal); i++) {
+            const x = p1[0] + (xReal < 0 ? i : -i),
+                y = p1[1] + (yReal < 0 ? i : -i);
+            if(
+                !inclusive &&
+                (
+                    [p1[0], p2[0]].includes(x) ||
+                    [p1[1], p2[1]].includes(y)
+                )
+            ) continue;
+            fields.push(this.getField(x, y))
+        }
+        
+
+        return fields;
+    }
+    
+    
+    fieldsAreFree(fields) {
+        for(let i = 0; i < fields.length; i++) {
+            if(fields[i].piece) return false;
+        }
+        return true;
+    }
 
 
     // static funcs

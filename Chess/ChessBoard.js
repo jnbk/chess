@@ -26,6 +26,7 @@ export default class ChessBoard {
 
         const game = this.game = new Chess();
         game.addEventListener("fieldset", e => this.fillField(e.detail.x, e.detail.y, e.detail.piece, e.detail.pieceColor))
+        game.addEventListener("turn", e => this.rotateBoard(e.detail.onTurn))
     }
 
     startGame() {

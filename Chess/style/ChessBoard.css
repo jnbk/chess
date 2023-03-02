@@ -10,12 +10,13 @@
     width: fit-content;   
     margin: auto;
     padding: 1em;
+    transition: transform .8s;
 }
 .board[data-rotation="white"] {
-    transform: rotateX(180deg);
+    transform: rotateZ(180deg);
 }
 .board[data-rotation="white"] .board-tile {
-    transform: rotateX(180deg);
+    transform: rotateZ(180deg);
 }
 .board-row {
     display: flex;
