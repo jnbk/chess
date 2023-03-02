@@ -1,0 +1,52 @@
+#app {
+    
+}
+
+.board {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    user-select: none;
+    width: fit-content;   
+    margin: auto;
+    padding: 1em;
+}
+.board[data-rotation="white"] {
+    transform: rotateX(180deg);
+}
+.board[data-rotation="white"] .board-tile {
+    transform: rotateX(180deg);
+}
+.board-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+}
+.board-tile {
+    display: flex;
+    width: 5em;
+    max-width: calc(100vw / 9);
+    height: 5em;
+    max-height: calc(100vw / 9);
+    justify-content: center;
+    align-items: center;
+    border: 1px black solid;
+}
+.board-tile.black {
+    background-color: rgb(165, 91, 42);
+}
+.board-tile.white {
+    background-color: whitesmoke;
+}
+.board-tile-content {
+    width: 100%;
+    height: 100%;
+}
+.board-tile-content > .piece {
+    width: 100%;
+    height: 100%;
+}
+.board-tile-content > .piece > img {
+    width: 100%;
+    height: 100%;
+}
