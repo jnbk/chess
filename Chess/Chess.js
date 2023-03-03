@@ -1,6 +1,6 @@
 import ChessBoard from "./ChessBoard.js";
 import { BISHOP, KING, KNIGHT, LETTERS, PAWN, QUEEN, ROOK, START_POSITIONS } from "./consts.js";
-import { coordinatesToXY as cToXY } from "./functions.js";
+import { coordinatesToXY as cToXY, XYToCoordinates } from "./functions.js";
 
 export default class Chess extends EventTarget {
 
@@ -46,11 +46,13 @@ export default class Chess extends EventTarget {
             this.setFieldPiece(...cToXY(coordinates), data.piece, data.pieceColor, false);
         }
     }
-    getField(x, y) {
-        return this.board[x][y];
+    getField(x, y, customBoard = null) {
+        if(!customBoard) customBoard = this.board;
+        return customBoard[x][y];
     }
     setFieldPiece(x, y, piece = null, pieceColor = null, moved = true) {
         const field = this.getField(x, y);
+        field.coord = [x, y];
         field.piece = piece;
         field.pieceColor = pieceColor;
         field.moved = moved;
@@ -61,6 +63,7 @@ export default class Chess extends EventTarget {
             pieceColor,
             moved,
         }));
+       
         return this;
     }
     move(from, to) {
@@ -74,7 +77,7 @@ export default class Chess extends EventTarget {
         fromField.moved = true;
         this.nextTurn();
 
-        this.setFieldPiece(...toXY, fromField.piece, fromField.pieceColor);
+        this.setFieldPiece(...toXY, fromField.piece, fromField.pieceColor, fromField.moved);
         this.setFieldPiece(...fromXY, null, null);
         return true;
     }
@@ -122,7 +125,88 @@ export default class Chess extends EventTarget {
             if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
         }
 
+        if(this.isCheckIfMove(fromColor, fromXY, toXY)) return false;
+        
+
         return true;
+    }
+    getAllFieldsWithPieces(customBoard = null) {
+        if(!customBoard) customBoard = this.board;
+        return customBoard.flat().filter(a => a && a.piece);
+    }
+    getAllFieldsWithPiecesOfColor(color = "white", customBoard = null) {
+        return this.getAllFieldsWithPieces(customBoard).filter(a => a.pieceColor === color);
+    }
+    getFieldsByColorAndPiece(color = "white", piece, customBoard = null) {
+        return this.getAllFieldsWithPiecesOfColor(color, customBoard).filter(a => a.piece === piece);
+    }
+    isFieldEndangeredBy(field, customBoard = null) {
+        const fromXY = field.coord,
+            hostiles = this.getAllFieldsWithPiecesOfColor(field.pieceColor === "white" ? "black" : "white", customBoard),
+            dangerousHostiles = [];
+
+        hostiles.forEach(piece => {
+            const type = piece.piece,
+                toXY = piece.coord,
+                distance = this.distanceBetweenPoints(fromXY, toXY);
+
+            if(type === KING) {
+                if(distance.max > 1) return false;
+            } else if(type === QUEEN) {
+                const pointsAreDiagonal = this.pointsAreDiagonal(fromXY, toXY),
+                    pointsAreStraightLine = this.pointsAreStraightLine(fromXY, toXY);
+                if(!pointsAreDiagonal && !pointsAreStraightLine) return false;
+
+                let fields;
+                    if(pointsAreStraightLine) {
+                        fields = this.getStraightLineFieldsBetweenPoints(fromXY, toXY, false, customBoard);
+                    } else {
+                        fields = this.getDiagonalFieldsBetweenPoints(fromXY, toXY, false, customBoard);
+                    }
+                
+                if(!this.fieldsAreFree(fields)) return false;
+
+            } else if(type === ROOK) {
+                if(!this.pointsAreStraightLine(fromXY, toXY)) return false;
+                if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY, false, customBoard))) return false;
+            } else if(type === BISHOP) {
+                if(!this.pointsAreDiagonal(fromXY, toXY)) return false;
+                console.log(this.getDiagonalFieldsBetweenPoints(fromXY, toXY, false, customBoard));
+                if(!this.fieldsAreFree(this.getDiagonalFieldsBetweenPoints(fromXY, toXY, false, customBoard))) return false;
+            } else if(type === KNIGHT) {
+                if(!this.pointsAreKnightMovable(fromXY, toXY)) return false;
+            } else if(type === PAWN) {
+                if(!this.pointsArePawnMovable(toXY, fromXY, piece.pieceColor, piece.moved, true)) return false;
+                if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY, false, customBoard))) return false;
+            }
+
+            dangerousHostiles.push(piece)
+        })
+
+        return dangerousHostiles;
+    }
+    isCheck(color = this.game.onTurn) {
+        const king = this.getFieldsByColorAndPiece(color, KING)[0];
+        return this.isFieldEndangeredBy(king).length > 0;
+    }
+    isCheckIfMove(color = this.game.onTurn, fromXY, toXY) {
+        const customBoard = JSON.parse(JSON.stringify(this.board));
+
+        let fromP = JSON.parse(JSON.stringify(customBoard[fromXY[0]][fromXY[1]]));
+        fromP.coord = toXY;
+        fromP.coordinates = XYToCoordinates(...toXY);
+        customBoard[toXY[0]][toXY[1]] = fromP;
+        
+        
+        customBoard[fromXY[0]][fromXY[1]].piece = null;
+        customBoard[fromXY[0]][fromXY[1]].pieceColor = null;
+
+        
+        const king = this.getFieldsByColorAndPiece(color, KING, customBoard)[0];
+
+        console.log(customBoard, king, this.isFieldEndangeredBy(king, customBoard));
+        
+        return this.isFieldEndangeredBy(king, customBoard).length > 0;
     }
 
     
@@ -194,7 +278,7 @@ export default class Chess extends EventTarget {
     
     
     pointsArePawnMovable(p1, p2, color, moved, gonnaCapture = false) {
-        const {y, x} = this.distanceBetweenPoints(p1, p2)
+        const {y, x, xReal, yReal} = this.distanceBetweenPoints(p1, p2)
     
     
         if(color === "white" && p1[0] > p2[0]) return false;
@@ -204,8 +288,7 @@ export default class Chess extends EventTarget {
             return false;
         } else if(!moved && x > 2) {
             return false;
-        }
-    
+        }    
     
         if(gonnaCapture) {
             if(y !== 1 || x !== 1) {
@@ -219,7 +302,7 @@ export default class Chess extends EventTarget {
         return true;
     }
 
-    getStraightLineFieldsBetweenPoints(p1, p2, inclusive = false) {
+    getStraightLineFieldsBetweenPoints(p1, p2, inclusive = false, customBoard = null) {
         if(!this.pointsAreStraightLine(p1, p2)) return [];
 
         const fields = [];
@@ -229,20 +312,20 @@ export default class Chess extends EventTarget {
             for(let i = Math.min(p1[0], p2[0]); i < Math.max(p1[0], p2[0]); i++) {
                 if(!inclusive && [p1[0], p2[0]].includes(i)) continue; 
 
-                fields.push(this.getField(i, p1[1]))
+                fields.push(this.getField(i, p1[1], customBoard))
             }
         } else if(y > 0) {
             for(let i = Math.min(p1[1], p2[1]); i < Math.max(p1[1], p2[1]); i++) {
                 if(!inclusive && [p1[1], p2[1]].includes(i)) continue; 
 
-                fields.push(this.getField(p1[0], i))
+                fields.push(this.getField(p1[0], i, customBoard))
             }
         }
 
         return fields;
     }
 
-    getDiagonalFieldsBetweenPoints(p1, p2, inclusive = false) {
+    getDiagonalFieldsBetweenPoints(p1, p2, inclusive = false, customBoard = null) {
         if(!this.pointsAreDiagonal(p1, p2)) return [];
 
         const fields = [];
@@ -259,7 +342,7 @@ export default class Chess extends EventTarget {
                     [p1[1], p2[1]].includes(y)
                 )
             ) continue;
-            fields.push(this.getField(x, y))
+            fields.push(this.getField(x, y, customBoard))
         }
         
 
@@ -286,6 +369,7 @@ export default class Chess extends EventTarget {
                     piece: null,
                     pieceColor: null,
                     coordinates: LETTERS[j] + (i + 1),
+                    coords: [i, j],
                 });
             }
             arr.push(row);

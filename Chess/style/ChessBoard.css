@@ -13,10 +13,10 @@
     transition: transform .8s;
 }
 .board[data-rotation="white"] {
-    transform: rotateZ(180deg);
+    transform: rotateX(180deg);
 }
 .board[data-rotation="white"] .board-tile {
-    transform: rotateZ(180deg);
+    transform: rotateX(180deg);
 }
 .board-row {
     display: flex;

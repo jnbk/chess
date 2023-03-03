@@ -15,3 +15,7 @@ export function coordinatesToXY(coordinates) {
 
     return [x, y];
 }
+
+export function XYToCoordinates(x, y) {
+    return xToLetter(y) + String(x + 1);
+}
