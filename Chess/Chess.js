@@ -1,6 +1,6 @@
 import ChessBoard from "./ChessBoard.js";
 import { BISHOP, KING, KNIGHT, LETTERS, PAWN, QUEEN, ROOK, START_POSITIONS } from "./consts.js";
-import { coordinatesToXY as cToXY, XYToCoordinates } from "./functions.js";
+import { coordinatesToXY, coordinatesToXY as cToXY, XYToCoordinates } from "./functions.js";
 
 export default class Chess extends EventTarget {
 
@@ -52,7 +52,7 @@ export default class Chess extends EventTarget {
     }
     setFieldPiece(x, y, piece = null, pieceColor = null, moved = true) {
         const field = this.getField(x, y);
-        field.coord = [x, y];
+        field.coords = [x, y];
         field.piece = piece;
         field.pieceColor = pieceColor;
         field.moved = moved;
@@ -130,9 +130,12 @@ export default class Chess extends EventTarget {
 
         return true;
     }
-    getAllFieldsWithPieces(customBoard = null) {
+    getAllFields(customBoard = null) {
         if(!customBoard) customBoard = this.board;
-        return customBoard.flat().filter(a => a && a.piece);
+        return customBoard.flat();
+    }
+    getAllFieldsWithPieces(customBoard = null) {
+        return this.getAllFields(customBoard).filter(a => a && a.piece);
     }
     getAllFieldsWithPiecesOfColor(color = "white", customBoard = null) {
         return this.getAllFieldsWithPieces(customBoard).filter(a => a.pieceColor === color);
@@ -141,13 +144,13 @@ export default class Chess extends EventTarget {
         return this.getAllFieldsWithPiecesOfColor(color, customBoard).filter(a => a.piece === piece);
     }
     isFieldEndangeredBy(field, customBoard = null) {
-        const fromXY = field.coord,
+        const fromXY = field.coords,
             hostiles = this.getAllFieldsWithPiecesOfColor(field.pieceColor === "white" ? "black" : "white", customBoard),
             dangerousHostiles = [];
 
         hostiles.forEach(piece => {
             const type = piece.piece,
-                toXY = piece.coord,
+                toXY = piece.coords,
                 distance = this.distanceBetweenPoints(fromXY, toXY);
 
             if(type === KING) {
@@ -171,7 +174,6 @@ export default class Chess extends EventTarget {
                 if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY, false, customBoard))) return false;
             } else if(type === BISHOP) {
                 if(!this.pointsAreDiagonal(fromXY, toXY)) return false;
-                console.log(this.getDiagonalFieldsBetweenPoints(fromXY, toXY, false, customBoard));
                 if(!this.fieldsAreFree(this.getDiagonalFieldsBetweenPoints(fromXY, toXY, false, customBoard))) return false;
             } else if(type === KNIGHT) {
                 if(!this.pointsAreKnightMovable(fromXY, toXY)) return false;
@@ -193,7 +195,7 @@ export default class Chess extends EventTarget {
         const customBoard = JSON.parse(JSON.stringify(this.board));
 
         let fromP = JSON.parse(JSON.stringify(customBoard[fromXY[0]][fromXY[1]]));
-        fromP.coord = toXY;
+        fromP.coords = toXY;
         fromP.coordinates = XYToCoordinates(...toXY);
         customBoard[toXY[0]][toXY[1]] = fromP;
         
@@ -203,10 +205,33 @@ export default class Chess extends EventTarget {
 
         
         const king = this.getFieldsByColorAndPiece(color, KING, customBoard)[0];
-
-        console.log(customBoard, king, this.isFieldEndangeredBy(king, customBoard));
         
         return this.isFieldEndangeredBy(king, customBoard).length > 0;
+    }
+
+    noPieceCanMove() {
+
+    }
+
+    getAllFieldsWherePieceCanMove(field) {
+        const from = field.coords,
+            allMoves = this.getAllFields(),
+            canMove = [];
+
+        allMoves.forEach(fieldTo => {
+            if(this.canMove(from, fieldTo.coords)) {
+                canMove.push(fieldTo);
+            }
+        })
+
+        return canMove;
+    }
+    getAllMovablePositions(coordinates) {
+        const positions = this.getAllFieldsWherePieceCanMove(this.getField(...coordinatesToXY(coordinates)));
+        for(let i = 0; i < positions.length; i++) {
+            positions[i] = positions[i].coordinates;
+        }
+        return positions;
     }
 
     
