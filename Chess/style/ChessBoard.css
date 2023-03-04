@@ -60,3 +60,6 @@
 .board-tile.can-move-on > .board-tile-content {
     background-color: #adff6245;
 }
+.board-tile.check > .board-tile-content {
+    background-color: #ff626245;
+}

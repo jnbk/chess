@@ -33,10 +33,20 @@ export default class ChessBoard {
             const color = e.detail.onTurn;
             this.rotateBoard(color)
             this.addInfo("Na ťahu je: " + colorToSlovak(color) + "");
+            this.removeAllOccurencesOfClass("check");
         })
+        game.addEventListener("check", e => {
+            const king = e.detail.king;
+            this.getField(king).classList.add("check");
+        });
         game.addEventListener("gameover", e => {
             const winner = e.detail.winner;
-            this.addInfo("Víťaz je: " + colorToSlovak(winner) + "! GG");
+            if(winner) {
+                this.addInfo("Víťaz je: " + colorToSlovak(winner) + "! GG");
+            } else {
+                this.addInfo("Remíza! GG");
+            }
+            
         });
     }
 
@@ -112,6 +122,12 @@ export default class ChessBoard {
             $.appendChild(info);
         }
 
+        {
+            const buttons = [
+
+            ];
+        }
+
 
         this.rotateBoard();
 
@@ -162,6 +178,7 @@ export default class ChessBoard {
 
     on = {
         dragstart: e => {
+            if(!e.target.closest(".board")) return;
             const coords = this.drag.getDraggablePieceCoords(e.target);
             
             this.hideAllMovablePositions();
@@ -174,7 +191,7 @@ export default class ChessBoard {
             }
         },
         dragover: e => {
-            
+            if(!e.target.closest(".board")) return;
             this.drag.checkIfCanDropFromEvent(e);
         },
         dragenter: e => {
@@ -188,6 +205,7 @@ export default class ChessBoard {
             this.hideAllMovablePositions();
         },
         drop: e => {
+            if(!e.target.closest(".board")) return;
             e.preventDefault();
             const coords = this.drag.getDroppedTileCoords(e.target),
                 coordsFrom = e.dataTransfer.getData("text/plain");      

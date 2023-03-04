@@ -25,7 +25,7 @@ export default class Chess extends EventTarget {
         };
         this.board = Chess.generateBoard();
         this.setStartPosition(START_POSITIONS);
-        
+
         this.dispatchEvent(this.customEvent("turn", {
             onTurn: this.game.onTurn
         }));
@@ -42,12 +42,37 @@ export default class Chess extends EventTarget {
         }));
 
         const newColor = this.game.onTurn;
+        
         if(this.hasCheckMate(newColor)) {
             this.dispatchEvent(this.customEvent("gameover", {
                 reason: "checkmate",
                 winner: oldColor,
             }));
+        } else if(this.hasCheck(newColor)) {
+            this.dispatchEvent(this.customEvent("check", {
+                inDanger: newColor,
+                king: this.getFieldsByColorAndPiece(newColor, KING)[0].coordinates
+            }));
+        } 
+        
+        const draw = this.isDraw();
+        if(draw.is) {
+            this.dispatchEvent(this.customEvent("gameover", {
+                reason: draw.reason,
+                winner: null,
+            }));
         }
+    }
+
+    saveToHistory() {
+        this.history.push(this.board);
+    }
+
+    draw() {
+        this.dispatchEvent(this.customEvent("gameover", {
+            reason: "draw",
+            winner: null,
+        }));
     }
 
     // helpers
@@ -85,6 +110,7 @@ export default class Chess extends EventTarget {
 
         if(!this.canMove(fromXY, toXY)) return false;
 
+        this.saveToHistory();
 
         fromField.moved = true;
 
@@ -111,6 +137,7 @@ export default class Chess extends EventTarget {
 
         if(fromP === KING) {
             if(distance.max > 1) return false;
+            if(distance.max < 3 && toP === KING) return false;
         } else if(fromP === QUEEN) {
             const pointsAreDiagonal = this.pointsAreDiagonal(fromXY, toXY),
                 pointsAreStraightLine = this.pointsAreStraightLine(fromXY, toXY);
@@ -168,6 +195,7 @@ export default class Chess extends EventTarget {
 
             if(type === KING) {
                 if(distance.max > 1) return false;
+                if(distance.max < 3 && field.piece === KING) return false;
             } else if(type === QUEEN) {
                 const pointsAreDiagonal = this.pointsAreDiagonal(fromXY, toXY),
                     pointsAreStraightLine = this.pointsAreStraightLine(fromXY, toXY);
@@ -224,6 +252,27 @@ export default class Chess extends EventTarget {
 
     hasCheckMate(color = this.game.onTurn) {
         return this.hasCheck(color) && this.noOneCanMove(color);
+    }
+    isDraw() {
+        function isStalemate(color) {
+            return this.noOneCanMove(color) && !this.hasCheck(color);
+        }
+        let is = false, reason, color;
+        ["white", "black"].forEach(color => {
+            if(isStalemate(color)) {
+                reason = "stalemate";
+                is = true;
+            }
+            
+            if(is) {
+                color = color;
+            }
+        })
+        return {
+            is,
+            reason,
+            color
+        }
     }
 
     noOneCanMove(color = this.game.onTurn) {
