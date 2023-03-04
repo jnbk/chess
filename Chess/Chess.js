@@ -1,4 +1,3 @@
-import ChessBoard from "./ChessBoard.js";
 import { BISHOP, KING, KNIGHT, LETTERS, PAWN, QUEEN, ROOK, START_POSITIONS } from "./consts.js";
 import { coordinatesToXY, coordinatesToXY as cToXY, XYToCoordinates } from "./functions.js";
 
@@ -26,8 +25,13 @@ export default class Chess extends EventTarget {
         };
         this.board = Chess.generateBoard();
         this.setStartPosition(START_POSITIONS);
+        
+        this.dispatchEvent(this.customEvent("turn", {
+            onTurn: this.game.onTurn
+        }));
     }
     nextTurn() {
+        const oldColor = this.game.onTurn;
         if(this.game.onTurn === "white") {
             this.game.onTurn = "black";
         } else {
@@ -36,6 +40,14 @@ export default class Chess extends EventTarget {
         this.dispatchEvent(this.customEvent("turn", {
             onTurn: this.game.onTurn
         }));
+
+        const newColor = this.game.onTurn;
+        if(this.hasCheckMate(newColor)) {
+            this.dispatchEvent(this.customEvent("gameover", {
+                reason: "checkmate",
+                winner: oldColor,
+            }));
+        }
     }
 
     // helpers
@@ -75,10 +87,11 @@ export default class Chess extends EventTarget {
 
 
         fromField.moved = true;
-        this.nextTurn();
 
         this.setFieldPiece(...toXY, fromField.piece, fromField.pieceColor, fromField.moved);
         this.setFieldPiece(...fromXY, null, null);
+
+        this.nextTurn();
         return true;
     }
     canMove(fromXY, toXY) {
@@ -125,7 +138,7 @@ export default class Chess extends EventTarget {
             if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
         }
 
-        if(this.isCheckIfMove(fromColor, fromXY, toXY)) return false;
+        if(this.hasCheckIfMove(fromColor, fromXY, toXY)) return false;
         
 
         return true;
@@ -187,11 +200,11 @@ export default class Chess extends EventTarget {
 
         return dangerousHostiles;
     }
-    isCheck(color = this.game.onTurn) {
+    hasCheck(color = this.game.onTurn) {
         const king = this.getFieldsByColorAndPiece(color, KING)[0];
         return this.isFieldEndangeredBy(king).length > 0;
     }
-    isCheckIfMove(color = this.game.onTurn, fromXY, toXY) {
+    hasCheckIfMove(color = this.game.onTurn, fromXY, toXY) {
         const customBoard = JSON.parse(JSON.stringify(this.board));
 
         let fromP = JSON.parse(JSON.stringify(customBoard[fromXY[0]][fromXY[1]]));
@@ -209,8 +222,18 @@ export default class Chess extends EventTarget {
         return this.isFieldEndangeredBy(king, customBoard).length > 0;
     }
 
-    noPieceCanMove() {
+    hasCheckMate(color = this.game.onTurn) {
+        return this.hasCheck(color) && this.noOneCanMove(color);
+    }
 
+    noOneCanMove(color = this.game.onTurn) {
+        const allOfColor = this.getAllFieldsWithPiecesOfColor(color);
+        for(let i = 0; i < allOfColor.length; i++) {
+            if(this.getAllFieldsWherePieceCanMove(allOfColor[i]).length > 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     getAllFieldsWherePieceCanMove(field) {

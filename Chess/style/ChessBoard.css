@@ -1,5 +1,13 @@
 #app {
-    
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+.info {
+    padding: 1em;
+    overflow: auto;
 }
 
 .board {
@@ -8,9 +16,7 @@
     flex-wrap: nowrap;
     user-select: none;
     width: fit-content;   
-    margin: auto;
     padding: 1em;
-    transition: transform .8s;
 }
 .board[data-rotation="white"] {
     transform: rotateX(180deg);

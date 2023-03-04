@@ -19,3 +19,8 @@ export function coordinatesToXY(coordinates) {
 export function XYToCoordinates(x, y) {
     return xToLetter(y) + String(x + 1);
 }
+
+
+export function colorToSlovak(color) {
+    return color === "white" ? "biely" : "čierny";
+}

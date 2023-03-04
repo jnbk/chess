@@ -1,9 +1,11 @@
 import Chess from "./Chess.js";
 import { PIECES_ICONS } from "./consts.js";
-import { coordinatesToXY } from "./functions.js";
+import { colorToSlovak, coordinatesToXY } from "./functions.js";
 
 export default class ChessBoard {
     fields = [];
+
+    infoElm;
 
     constructor(rootElement) {
         const $ = this.rootElement = rootElement;
@@ -27,7 +29,15 @@ export default class ChessBoard {
 
         const game = this.game = new Chess();
         game.addEventListener("fieldset", e => this.fillField(e.detail.x, e.detail.y, e.detail.piece, e.detail.pieceColor))
-        game.addEventListener("turn", e => this.rotateBoard(e.detail.onTurn))
+        game.addEventListener("turn", e => {
+            const color = e.detail.onTurn;
+            this.rotateBoard(color)
+            this.addInfo("Na ťahu je: " + colorToSlovak(color) + "");
+        })
+        game.addEventListener("gameover", e => {
+            const winner = e.detail.winner;
+            this.addInfo("Víťaz je: " + colorToSlovak(winner) + "! GG");
+        });
     }
 
     startGame() {
@@ -93,6 +103,13 @@ export default class ChessBoard {
                 board.appendChild(row);
             })
 
+        } 
+
+        if(!this.resetInfo()) {
+            const info = document.createElement("div");
+            info.classList.add("info");
+            this.infoElm = info;
+            $.appendChild(info);
         }
 
 
@@ -123,6 +140,22 @@ export default class ChessBoard {
     }
     removeAllOccurencesOfClass(className) {
         this.getBoardElement().querySelectorAll(".board-tile." + className).forEach(elm => elm.classList.remove(className));
+    }
+
+    resetInfo() {
+        if(!this.infoElm) return false;
+
+        this.infoElm.innerHTML = "";
+
+        return true;
+    }
+
+    addInfo(html) {
+        if(!this.infoElm) return false;
+
+        this.infoElm.innerHTML += `<div class='line'>${html}</div>`;
+
+        return true;
     }
 
     // events
@@ -169,6 +202,7 @@ export default class ChessBoard {
     drag = {
         selectedPiece: null,
         getDraggablePieceCoords: target => {
+            if(!target) return;
             const piece = target.closest(".piece");
             if(!piece) return;
 
@@ -197,9 +231,10 @@ export default class ChessBoard {
         },
         getCoordsFrom: (source = this.drag.selectedPiece) => {
             if(!source) return;
-            return this.drag.getBoardTile(source)
-                .dataset
-                .coordinates;
+            const boardTile = this.drag.getBoardTile(source);
+            if(!boardTile) return;
+
+            return boardTile.dataset.coordinates;
         },
         checkIfCanDropFromEvent: e => {
             e.dropEffect = "none";
