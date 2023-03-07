@@ -104,11 +104,13 @@ export default class Chess extends EventTarget {
         return this;
     }
     move(from, to) {
-        const fromXY = cToXY(from),
+        let fromXY = cToXY(from),
             toXY = cToXY(to),
             fromField = this.getField(...fromXY);
 
         if(!this.canMove(fromXY, toXY)) return false;
+
+        [fromXY, toXY, fromField] = this.moveCustom(fromXY, toXY, fromField);
 
         this.saveToHistory();
 
@@ -120,7 +122,19 @@ export default class Chess extends EventTarget {
         this.nextTurn();
         return true;
     }
-    canMove(fromXY, toXY) {
+    moveCustom(fromXY, toXY, fromField) {
+        const castling = this.getCastling(fromXY, toXY);
+        if(castling) {
+            toXY = castling.sourceTo;
+            
+            this.setFieldPiece(...castling.otherTo, castling.other.piece, castling.other.pieceColor, castling.other.moved);
+            this.setFieldPiece(...castling.otherFrom, null, null);
+        }
+        return [
+            fromXY, toXY, fromField
+        ];
+    }
+    canMove(fromXY, toXY, ignoreTurns = false) {
         if(!Array.isArray(fromXY)) fromXY = cToXY(fromXY);
         if(!Array.isArray(toXY)) toXY = cToXY(toXY);
 
@@ -132,43 +146,107 @@ export default class Chess extends EventTarget {
             toP = to.piece,
             distance = this.distanceBetweenPoints(fromXY, toXY);
 
-        if(fromColor === toColor) return false;
-        if(fromColor !== this.game.onTurn) return false;
+        if(!ignoreTurns && fromColor !== this.game.onTurn) return false;
 
-        if(fromP === KING) {
-            if(distance.max > 1) return false;
-            if(distance.max < 3 && toP === KING) return false;
-        } else if(fromP === QUEEN) {
-            const pointsAreDiagonal = this.pointsAreDiagonal(fromXY, toXY),
-                pointsAreStraightLine = this.pointsAreStraightLine(fromXY, toXY);
-            if(!pointsAreDiagonal && !pointsAreStraightLine) return false;
+        if(!this.getCastling(fromXY, toXY)) {
 
-            let fields;
-                if(pointsAreStraightLine) {
-                    fields = this.getStraightLineFieldsBetweenPoints(fromXY, toXY);
+            if(fromColor === toColor) return false;
+
+            if(fromP === KING) {
+                if(toP === ROOK) {
+                    if(from.moved || to.moved) return false;
+                    if(!this.pointsAreStraightLine(fromXY, toXY)) return false;
+                    if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
                 } else {
-                    fields = this.getDiagonalFieldsBetweenPoints(fromXY, toXY);
+                    if(distance.max > 1) return false;
+                    if(distance.max < 3 && toP === KING) return false;
                 }
-            
-            if(!this.fieldsAreFree(fields)) return false;
+                
+            } else if(fromP === QUEEN) {
+                const pointsAreDiagonal = this.pointsAreDiagonal(fromXY, toXY),
+                    pointsAreStraightLine = this.pointsAreStraightLine(fromXY, toXY);
+                if(!pointsAreDiagonal && !pointsAreStraightLine) return false;
+    
+                let fields;
+                    if(pointsAreStraightLine) {
+                        fields = this.getStraightLineFieldsBetweenPoints(fromXY, toXY);
+                    } else {
+                        fields = this.getDiagonalFieldsBetweenPoints(fromXY, toXY);
+                    }
+                
+                if(!this.fieldsAreFree(fields)) return false;
+    
+            } else if(fromP === ROOK) {
+                if(toP === KING) {
+                    if(from.moved || to.moved) return false;
+                    if(!this.pointsAreStraightLine(fromXY, toXY)) return false;
+                    if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
+                } else {
+                    if(!this.pointsAreStraightLine(fromXY, toXY)) return false;
+                    if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
+                }
+            } else if(fromP === BISHOP) {
+                if(!this.pointsAreDiagonal(fromXY, toXY)) return false;
+                if(!this.fieldsAreFree(this.getDiagonalFieldsBetweenPoints(fromXY, toXY))) return false;
+            } else if(fromP === KNIGHT) {
+                if(!this.pointsAreKnightMovable(fromXY, toXY)) return false;
+            } else if(fromP === PAWN) {
+                if(!this.pointsArePawnMovable(fromXY, toXY, fromColor, from.moved, !!toP)) return false;
+                if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
+            }
 
-        } else if(fromP === ROOK) {
-            if(!this.pointsAreStraightLine(fromXY, toXY)) return false;
-            if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
-        } else if(fromP === BISHOP) {
-            if(!this.pointsAreDiagonal(fromXY, toXY)) return false;
-            if(!this.fieldsAreFree(this.getDiagonalFieldsBetweenPoints(fromXY, toXY))) return false;
-        } else if(fromP === KNIGHT) {
-            if(!this.pointsAreKnightMovable(fromXY, toXY)) return false;
-        } else if(fromP === PAWN) {
-            if(!this.pointsArePawnMovable(fromXY, toXY, fromColor, from.moved, !!toP)) return false;
-            if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
+            
+            if(this.hasCheckIfMove(fromColor, fromXY, toXY)) return false;
         }
 
-        if(this.hasCheckIfMove(fromColor, fromXY, toXY)) return false;
         
 
         return true;
+    }
+    getCastling(fromXY, toXY) {
+        const from = this.getField(...fromXY),
+            fromColor = from.pieceColor,
+            to = this.getField(...toXY),
+            fromP = from.piece,
+            toP = to.piece;
+        if(
+            (fromP === KING && toP === ROOK) ||
+            (toP === KING && fromP === ROOK)
+        ) {
+            if(from.moved || to.moved) return false;
+            if(!this.pointsAreStraightLine(fromXY, toXY)) return false;
+            if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
+
+            let sourceTo, otherTo, otherFrom = toXY, other = to;
+            if(fromP === KING) {
+                if(toXY[1] === 0) {
+                    sourceTo = [toXY[0], 2];
+                    otherTo = [toXY[0], 3];
+                } else {
+                    sourceTo = [toXY[0], 6];
+                    otherTo = [toXY[0], 5];
+                }
+                if(this.hasCheckIfMove(fromColor, fromXY, sourceTo)) return false;
+            } else {
+                if(fromXY[1] === 0) {
+                    otherTo = [toXY[0], 2];
+                    sourceTo = [toXY[0], 3];
+                } else {
+                    otherTo = [toXY[0], 6];
+                    sourceTo = [toXY[0], 5];
+                }
+                if(this.hasCheckIfMove(fromColor, otherFrom, otherTo)) return false;
+            }
+
+            return {
+                sourceTo: sourceTo,
+                otherTo: otherTo,
+                otherFrom: otherFrom,
+                other: other,
+            };
+        }
+
+        return false;
     }
     getAllFields(customBoard = null) {
         if(!customBoard) customBoard = this.board;
@@ -254,7 +332,7 @@ export default class Chess extends EventTarget {
         return this.hasCheck(color) && this.noOneCanMove(color);
     }
     isDraw() {
-        function isStalemate(color) {
+        const isStalemate = (color) => {
             return this.noOneCanMove(color) && !this.hasCheck(color);
         }
         let is = false, reason, color;
@@ -278,20 +356,20 @@ export default class Chess extends EventTarget {
     noOneCanMove(color = this.game.onTurn) {
         const allOfColor = this.getAllFieldsWithPiecesOfColor(color);
         for(let i = 0; i < allOfColor.length; i++) {
-            if(this.getAllFieldsWherePieceCanMove(allOfColor[i]).length > 0) {
+            if(this.getAllFieldsWherePieceCanMove(allOfColor[i], true).length > 0) {
                 return false;
             }
         }
         return true;
     }
 
-    getAllFieldsWherePieceCanMove(field) {
+    getAllFieldsWherePieceCanMove(field, ignoreTurns = false) {
         const from = field.coords,
             allMoves = this.getAllFields(),
             canMove = [];
 
         allMoves.forEach(fieldTo => {
-            if(this.canMove(from, fieldTo.coords)) {
+            if(this.canMove(from, fieldTo.coords, ignoreTurns)) {
                 canMove.push(fieldTo);
             }
         })
