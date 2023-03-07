@@ -189,13 +189,13 @@ export default class ChessBoard {
             } else if(this.drag.selectedPiece) {
                 const coords = this.drag.getDroppedTileCoords(e.target);
                 if(coords) {
-                    this.game.move(this.drag.selectedPiece, coords);
+                    this.game.move(this.drag.getCoordsFrom(), coords);
                 }
                 this.hideAllMovablePositions();
                 this.drag.selectedPiece = null;
                 
             } else if(coordsDraggable) {
-                this.drag.selectedPiece = coordsDraggable;
+                this.drag.selectedPiece = e.target.closest(".piece");
                 this.showAllMovablePositions(coordsDraggable);
             }
             
@@ -239,6 +239,7 @@ export default class ChessBoard {
                 this.game.move(coordsFrom, coords);
             }   
             
+            this.drag.selectedPiece = null;
             this.hideAllMovablePositions();
         },
     }
