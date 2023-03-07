@@ -1,4 +1,32 @@
-import { BISHOP, KING, KNIGHT, LETTERS, PAWN, QUEEN, ROOK, START_POSITIONS } from "./consts.js";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Chess.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Chess.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { BISHOP, KING, KNIGHT, LETTERS, PAWN, QUEEN, ROOK, START_POSITIONS } from "./consts.js";
 import { coordinatesToXY, coordinatesToXY as cToXY, XYToCoordinates } from "./functions.js";
 
 /**
@@ -227,7 +255,7 @@ export default class Chess extends EventTarget {
             toP = to.piece,
             distance = this.distanceBetweenPoints(fromXY, toXY);
 
-        if(!ignoreTurns && fromColor !== this.game.onTurn) return false;
+        if(!ignoreTurns &amp;&amp; fromColor !== this.game.onTurn) return false;
 
         if(!this.getCastling(fromXY, toXY)) {
 
@@ -240,13 +268,13 @@ export default class Chess extends EventTarget {
                     if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
                 } else {
                     if(distance.max > 1) return false;
-                    if(distance.max < 3 && toP === KING) return false;
+                    if(distance.max &lt; 3 &amp;&amp; toP === KING) return false;
                 }
                 
             } else if(fromP === QUEEN) {
                 const pointsAreDiagonal = this.pointsAreDiagonal(fromXY, toXY),
                     pointsAreStraightLine = this.pointsAreStraightLine(fromXY, toXY);
-                if(!pointsAreDiagonal && !pointsAreStraightLine) return false;
+                if(!pointsAreDiagonal &amp;&amp; !pointsAreStraightLine) return false;
     
                 let fields;
                     if(pointsAreStraightLine) {
@@ -298,8 +326,8 @@ export default class Chess extends EventTarget {
             fromP = from.piece,
             toP = to.piece;
         if(
-            (fromP === KING && toP === ROOK) ||
-            (toP === KING && fromP === ROOK)
+            (fromP === KING &amp;&amp; toP === ROOK) ||
+            (toP === KING &amp;&amp; fromP === ROOK)
         ) {
             if(from.moved || to.moved) return false;
             if(!this.pointsAreStraightLine(fromXY, toXY)) return false;
@@ -353,7 +381,7 @@ export default class Chess extends EventTarget {
      * @returns {Array}
      */
     getAllFieldsWithPieces(customBoard = null) {
-        return this.getAllFields(customBoard).filter(a => a && a.piece);
+        return this.getAllFields(customBoard).filter(a => a &amp;&amp; a.piece);
     }
 
     /**
@@ -405,11 +433,11 @@ export default class Chess extends EventTarget {
 
             if(type === KING) {
                 if(distance.max > 1) return false;
-                if(distance.max < 3 && field.piece === KING) return false;
+                if(distance.max &lt; 3 &amp;&amp; field.piece === KING) return false;
             } else if(type === QUEEN) {
                 const pointsAreDiagonal = this.pointsAreDiagonal(fromXY, toXY),
                     pointsAreStraightLine = this.pointsAreStraightLine(fromXY, toXY);
-                if(!pointsAreDiagonal && !pointsAreStraightLine) return false;
+                if(!pointsAreDiagonal &amp;&amp; !pointsAreStraightLine) return false;
 
                 let fields;
                     if(pointsAreStraightLine) {
@@ -480,7 +508,7 @@ export default class Chess extends EventTarget {
      * @returns {Boolean}
      */
     hasCheckMate(color = this.game.onTurn) {
-        return this.hasCheck(color) && this.noOneCanMove(color);
+        return this.hasCheck(color) &amp;&amp; this.noOneCanMove(color);
     }
     
 
@@ -491,7 +519,7 @@ export default class Chess extends EventTarget {
     isDraw() {
         const 
             isStalemate = (color) => {
-                return this.noOneCanMove(color) && !this.hasCheck(color);
+                return this.noOneCanMove(color) &amp;&amp; !this.hasCheck(color);
             },
             impossibleCheckMate = () => {
                 const allPieces = [
@@ -499,8 +527,8 @@ export default class Chess extends EventTarget {
                     this.getAllPiecesOfColor("black"),
                 ];
 
-                if(allPieces[0].length < 2 && allPieces[1].length < 2) return true;
-                if(allPieces[0].length < 2 && allPieces[1].length < 2) return true;
+                if(allPieces[0].length &lt; 2 &amp;&amp; allPieces[1].length &lt; 2) return true;
+                if(allPieces[0].length &lt; 2 &amp;&amp; allPieces[1].length &lt; 2) return true;
 
                 return false;
 
@@ -521,7 +549,7 @@ export default class Chess extends EventTarget {
             reason = "impossibleCheckMate";
             is = true;
         }
-        if(is && !color) {
+        if(is &amp;&amp; !color) {
             color = this.game.onTurn;
         }
 
@@ -539,7 +567,7 @@ export default class Chess extends EventTarget {
      */
     noOneCanMove(color = this.game.onTurn) {
         const allOfColor = this.getAllFieldsWithPiecesOfColor(color);
-        for(let i = 0; i < allOfColor.length; i++) {
+        for(let i = 0; i &lt; allOfColor.length; i++) {
             if(this.getAllFieldsWherePieceCanMove(allOfColor[i], true).length > 0) {
                 return false;
             }
@@ -574,7 +602,7 @@ export default class Chess extends EventTarget {
      */
     getAllMovablePositions(coordinates) {
         const positions = this.getAllFieldsWherePieceCanMove(this.getField(...coordinatesToXY(coordinates)));
-        for(let i = 0; i < positions.length; i++) {
+        for(let i = 0; i &lt; positions.length; i++) {
             positions[i] = positions[i].coordinates;
         }
         return positions;
@@ -656,7 +684,7 @@ export default class Chess extends EventTarget {
      */
     pointsAreStraightLine(p1, p2) {
         const {y, x} = this.distanceBetweenPoints(p1, p2)
-        if(y !== 0 && x !== 0) return false;
+        if(y !== 0 &amp;&amp; x !== 0) return false;
     
         return true;
     }
@@ -671,8 +699,8 @@ export default class Chess extends EventTarget {
     pointsAreKnightMovable(p1, p2) {
         const {y, x} = this.distanceBetweenPoints(p1, p2)
         
-        if(Math.abs(y) === 1 && Math.abs(x) === 2) return true;
-        if(Math.abs(x) === 1 && Math.abs(y) === 2) return true;
+        if(Math.abs(y) === 1 &amp;&amp; Math.abs(x) === 2) return true;
+        if(Math.abs(x) === 1 &amp;&amp; Math.abs(y) === 2) return true;
     
         return false;
     }
@@ -690,12 +718,12 @@ export default class Chess extends EventTarget {
         const {y, x, xReal, yReal} = this.distanceBetweenPoints(p1, p2)
     
     
-        if(color === "white" && p1[0] > p2[0]) return false;
-        if(color === "black" && p1[0] < p2[0]) return false;
+        if(color === "white" &amp;&amp; p1[0] > p2[0]) return false;
+        if(color === "black" &amp;&amp; p1[0] &lt; p2[0]) return false;
     
-        if(moved && x > 1) {
+        if(moved &amp;&amp; x > 1) {
             return false;
-        } else if(!moved && x > 2) {
+        } else if(!moved &amp;&amp; x > 2) {
             return false;
         }    
     
@@ -726,14 +754,14 @@ export default class Chess extends EventTarget {
 
         const {y, x} = this.distanceBetweenPoints(p1, p2);
         if(x > 0) {
-            for(let i = Math.min(p1[0], p2[0]); i < Math.max(p1[0], p2[0]); i++) {
-                if(!inclusive && [p1[0], p2[0]].includes(i)) continue; 
+            for(let i = Math.min(p1[0], p2[0]); i &lt; Math.max(p1[0], p2[0]); i++) {
+                if(!inclusive &amp;&amp; [p1[0], p2[0]].includes(i)) continue; 
 
                 fields.push(this.getField(i, p1[1], customBoard))
             }
         } else if(y > 0) {
-            for(let i = Math.min(p1[1], p2[1]); i < Math.max(p1[1], p2[1]); i++) {
-                if(!inclusive && [p1[1], p2[1]].includes(i)) continue; 
+            for(let i = Math.min(p1[1], p2[1]); i &lt; Math.max(p1[1], p2[1]); i++) {
+                if(!inclusive &amp;&amp; [p1[1], p2[1]].includes(i)) continue; 
 
                 fields.push(this.getField(p1[0], i, customBoard))
             }
@@ -758,11 +786,11 @@ export default class Chess extends EventTarget {
 
         const {maxReal, xReal, yReal} = this.distanceBetweenPoints(p1, p2);
 
-        for(let i = 0; i <= Math.abs(maxReal); i++) {
-            const x = p1[0] + (xReal < 0 ? i : -i),
-                y = p1[1] + (yReal < 0 ? i : -i);
+        for(let i = 0; i &lt;= Math.abs(maxReal); i++) {
+            const x = p1[0] + (xReal &lt; 0 ? i : -i),
+                y = p1[1] + (yReal &lt; 0 ? i : -i);
             if(
-                !inclusive &&
+                !inclusive &amp;&amp;
                 (
                     [p1[0], p2[0]].includes(x) ||
                     [p1[1], p2[1]].includes(y)
@@ -781,7 +809,7 @@ export default class Chess extends EventTarget {
      * @returns {Boolean}
      */
     fieldsAreFree(fields) {
-        for(let i = 0; i < fields.length; i++) {
+        for(let i = 0; i &lt; fields.length; i++) {
             if(fields[i].piece) return false;
         }
         return true;
@@ -797,9 +825,9 @@ export default class Chess extends EventTarget {
      */
     static generateBoard() {
         const arr = [];
-        for(let i = 0; i < 8; i++) {
+        for(let i = 0; i &lt; 8; i++) {
             const row = [];
-            for(let j = 0; j < 8; j++) {
+            for(let j = 0; j &lt; 8; j++) {
                 row.push({
                     piece: null,
                     pieceColor: null,
@@ -828,9 +856,9 @@ export default class Chess extends EventTarget {
 
         const tiles = [];
         let lastClr = "white";
-        for(let i = 0; i < 8; i++) {
+        for(let i = 0; i &lt; 8; i++) {
             const row = [];
-            for(let j = 0; j < 8; j++) {
+            for(let j = 0; j &lt; 8; j++) {
                 lastClr = reverseColors(lastClr);
                 row.push({
                     coordinates: LETTERS[j] + (i + 1),
@@ -842,4 +870,26 @@ export default class Chess extends EventTarget {
         }
         return tiles;
     }
-}
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Chess.html">Chess</a></li><li><a href="module-ChessBoard.html">ChessBoard</a></li></ul><h3>Classes</h3><ul><li><a href="module-Chess.html">Chess</a></li><li><a href="module-ChessBoard.html">ChessBoard</a></li></ul><h3>Global</h3><ul><li><a href="global.html#XYToCoordinates">XYToCoordinates</a></li><li><a href="global.html#colorToSlovak">colorToSlovak</a></li><li><a href="global.html#coordinatesToXY">coordinatesToXY</a></li><li><a href="global.html#letterToX">letterToX</a></li><li><a href="global.html#xToLetter">xToLetter</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Tue Mar 07 2023 22:28:09 GMT+0100 (Central European Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
