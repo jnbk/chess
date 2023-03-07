@@ -25,6 +25,7 @@ export default class ChessBoard {
             root.addEventListener("dragleave", this.on.dragleave);
             root.addEventListener("dragend", this.on.dragend);
             root.addEventListener("drop", this.on.drop);
+            root.addEventListener("click", this.on.click);
         }
 
         const game = this.game = new Chess();
@@ -177,12 +178,37 @@ export default class ChessBoard {
     // events
 
     on = {
+        click: e => {
+            if(!e.target.closest(".board")) return;
+
+            const coordsDraggable = this.drag.getDraggablePieceCoords(e.target);
+            
+            if(coordsDraggable && this.drag.selectedPiece === coordsDraggable) {
+                this.hideAllMovablePositions();
+                this.drag.selectedPiece = null;
+            } else if(this.drag.selectedPiece) {
+                const coords = this.drag.getDroppedTileCoords(e.target);
+                if(coords) {
+                    this.game.move(this.drag.selectedPiece, coords);
+                }
+                this.hideAllMovablePositions();
+                this.drag.selectedPiece = null;
+                
+            } else if(coordsDraggable) {
+                this.drag.selectedPiece = coordsDraggable;
+                this.showAllMovablePositions(coordsDraggable);
+            }
+            
+            
+            
+        },
         dragstart: e => {
             if(!e.target.closest(".board")) return;
             const coords = this.drag.getDraggablePieceCoords(e.target);
             
             this.hideAllMovablePositions();
             if(coords) {
+                e.dataTransfer.effectAllowed = "copyMove";
                 
                 this.drag.selectedPiece = e.target.closest(".piece");
 
@@ -260,7 +286,7 @@ export default class ChessBoard {
             const coords = this.drag.getDroppedTileCoords(e.target),
                 coordsFrom = this.drag.getCoordsFrom();  
                 
-            this.showAllMovablePositions(coordsFrom);
+            //this.showAllMovablePositions(coordsFrom);
 
             if(this.drag.canDrop(e.target) && this.game.canMove(coordsFrom, coords)) {
                 e.preventDefault();
