@@ -43,10 +43,17 @@ export default class ChessBoard {
         game.addEventListener("gameover", e => {
             const winner = e.detail.winner;
             if(winner) {
-                this.addInfo("Víťaz je: " + colorToSlovak(winner) + "! GG");
+                this.addInfo("<b>Víťaz je: " + colorToSlovak(winner) + "! GG</b>");
             } else {
-                this.addInfo("Remíza! GG");
+                this.addInfo("<b>Remíza! GG</b>");
             }
+
+            this.addInfoButtons([{
+                html: "Hrať odznova",
+                onclick: e => {
+                    this.startGame();
+                }
+            }])
             
         });
     }
@@ -78,6 +85,9 @@ export default class ChessBoard {
         if(board) {
             board.remove();
         }
+
+        
+        this.removeInfo();
 
         this.fields = [];
         return this;
@@ -116,12 +126,7 @@ export default class ChessBoard {
 
         } 
 
-        if(!this.resetInfo()) {
-            const info = document.createElement("div");
-            info.classList.add("info");
-            this.infoElm = info;
-            $.appendChild(info);
-        }
+        this.createInfo($);
 
         {
             const buttons = [
@@ -159,12 +164,16 @@ export default class ChessBoard {
         this.getBoardElement().querySelectorAll(".board-tile." + className).forEach(elm => elm.classList.remove(className));
     }
 
-    resetInfo() {
+    removeInfo() {
         if(!this.infoElm) return false;
+        return this.infoElm.remove();
+    }
 
-        this.infoElm.innerHTML = "";
-
-        return true;
+    createInfo($) {
+        const info = document.createElement("div");
+        info.classList.add("info");
+        this.infoElm = info;
+        $.appendChild(info);
     }
 
     addInfo(html) {
@@ -173,6 +182,28 @@ export default class ChessBoard {
         this.infoElm.innerHTML += `<div class='line'>${html}</div>`;
 
         return true;
+    }
+
+
+    addInfoElements(arr) {
+        if(!this.infoElm) return false;
+
+        arr.forEach(elm => {
+            const line = document.createElement("div");
+            line.classList.add("line");
+            line.appendChild(elm);
+            this.infoElm.appendChild(line);
+        })
+        return true;
+    }
+    addInfoButtons(arr) {
+        arr = arr.map(btn => {
+            const elm = document.createElement("button");
+            elm.innerHTML = btn.html;
+            elm.addEventListener("click", btn.onclick);
+            return elm;
+        })
+        return this.addInfoElements(arr);
     }
 
     // events
