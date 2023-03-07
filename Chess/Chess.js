@@ -261,6 +261,10 @@ export default class Chess extends EventTarget {
     getFieldsByColorAndPiece(color = "white", piece, customBoard = null) {
         return this.getAllFieldsWithPiecesOfColor(color, customBoard).filter(a => a.piece === piece);
     }
+    
+    getAllPiecesOfColor(color = "white", customBoard = null) {
+        return this.getAllFieldsWithPiecesOfColor(color, customBoard).map(a => a.piece);
+    }
     isFieldEndangeredBy(field, customBoard = null) {
         const fromXY = field.coords,
             hostiles = this.getAllFieldsWithPiecesOfColor(field.pieceColor === "white" ? "black" : "white", customBoard),
@@ -332,9 +336,22 @@ export default class Chess extends EventTarget {
         return this.hasCheck(color) && this.noOneCanMove(color);
     }
     isDraw() {
-        const isStalemate = (color) => {
-            return this.noOneCanMove(color) && !this.hasCheck(color);
-        }
+        const 
+            isStalemate = (color) => {
+                return this.noOneCanMove(color) && !this.hasCheck(color);
+            },
+            impossibleCheckMate = () => {
+                const allPieces = [
+                    this.getAllPiecesOfColor("white"),
+                    this.getAllPiecesOfColor("black"),
+                ];
+
+                if(allPieces[0].length < 2 && allPieces[1].length < 2) return true;
+                if(allPieces[0].length < 2 && allPieces[1].length < 2) return true;
+
+                return false;
+
+            }
         let is = false, reason, color;
         ["white", "black"].forEach(color => {
             if(isStalemate(color)) {
@@ -346,6 +363,15 @@ export default class Chess extends EventTarget {
                 color = color;
             }
         })
+
+        if(impossibleCheckMate()) {
+            reason = "impossibleCheckMate";
+            is = true;
+        }
+        if(is && !color) {
+            color = this.game.onTurn;
+        }
+
         return {
             is,
             reason,
