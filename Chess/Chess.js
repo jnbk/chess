@@ -234,14 +234,9 @@ export default class Chess extends EventTarget {
             if(fromColor === toColor) return false;
 
             if(fromP === KING) {
-                if(toP === ROOK) {
-                    if(from.moved || to.moved) return false;
-                    if(!this.pointsAreStraightLine(fromXY, toXY)) return false;
-                    if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
-                } else {
-                    if(distance.max > 1) return false;
-                    if(distance.max < 3 && toP === KING) return false;
-                }
+                
+                if(distance.max > 1) return false;
+                if(distance.max < 3 && toP === KING) return false;
                 
             } else if(fromP === QUEEN) {
                 const pointsAreDiagonal = this.pointsAreDiagonal(fromXY, toXY),
@@ -258,14 +253,10 @@ export default class Chess extends EventTarget {
                 if(!this.fieldsAreFree(fields)) return false;
     
             } else if(fromP === ROOK) {
-                if(toP === KING) {
-                    if(from.moved || to.moved) return false;
-                    if(!this.pointsAreStraightLine(fromXY, toXY)) return false;
-                    if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
-                } else {
-                    if(!this.pointsAreStraightLine(fromXY, toXY)) return false;
-                    if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
-                }
+                
+                if(!this.pointsAreStraightLine(fromXY, toXY)) return false;
+                if(!this.fieldsAreFree(this.getStraightLineFieldsBetweenPoints(fromXY, toXY))) return false;
+                
             } else if(fromP === BISHOP) {
                 if(!this.pointsAreDiagonal(fromXY, toXY)) return false;
                 if(!this.fieldsAreFree(this.getDiagonalFieldsBetweenPoints(fromXY, toXY))) return false;
