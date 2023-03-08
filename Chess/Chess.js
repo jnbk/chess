@@ -297,6 +297,7 @@ export default class Chess extends EventTarget {
             to = this.getField(...toXY),
             fromP = from.piece,
             toP = to.piece;
+        if(fromColor !== to.pieceColor) return false;
         if(
             (fromP === KING && toP === ROOK) ||
             (toP === KING && fromP === ROOK)
