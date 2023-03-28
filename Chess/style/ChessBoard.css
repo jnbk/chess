@@ -18,8 +18,14 @@
     width: fit-content;   
     padding: 1em;
 }
+.board {
+    transform: rotateY(180deg);
+}
+.board .board-tile {
+    transform: rotateY(180deg);
+}
 .board[data-rotation="white"] {
-    transform: rotateX(180deg);
+    transform: rotateX(180deg) rotateY(0deg);
 }
 .board[data-rotation="white"] .board-tile {
     transform: rotateX(180deg);
@@ -62,4 +68,12 @@
 }
 .board-tile.check > .board-tile-content {
     background-color: #ff626245;
+}
+@media only screen and (max-width: 600px) {
+    .board {
+        transform: rotateX(180deg);
+    }
+    .board[data-rotation="white"] .board-tile {
+        transform: rotateX(180deg);
+    }
 }
